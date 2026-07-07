@@ -28,6 +28,7 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function (){
     Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
+    Route::post('/pos/checkout', [PosController::class, 'store'])->name('pos.checkout');
 });
 
 require __DIR__.'/auth.php';
