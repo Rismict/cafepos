@@ -1,43 +1,68 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import React from 'react';
 
 export default function Dashboard({ stats }) {
-    const { total_revenue, total_orders, top_products, low_stock } = stats;
+    const { total_revenue, total_orders, top_products, low_stock, current_period } = stats;
+
+    // Trigger Inertia reload with query params
+    const handlePeriodChange = (period) => {
+        router.get(route('dashboard'), { period }, { preserveState: true });
+    };
 
     return (
         <AuthenticatedLayout
-            header={<h2 className="text-xl font-semibold leading-tight text-gray-800">📊 Business Analytics</h2>}
+            header={
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h2 className="text-xl font-semibold leading-tight text-gray-800">📊 Business Analytics</h2>
+
+                    {/* Time-base Filter Button Group */}
+                    <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200 shadow-inner">
+                        {['today', 'week', 'month', 'year'].map((p) => (
+                            <button
+                                key={p}
+                                onClick={() => handlePeriodChange(p)}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition ${current_period === p
+                                    ? 'bg-white text-amber-800 shadow-sm border border-gray-200/50'
+                                    : 'text-gray-500 hover:text-gray-900'
+                                    }`}
+                            >
+                                {p}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            }
         >
             <Head title="Dashboard" />
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
 
-                    {/* Top Row: Numeric Stats Cards */}
+                    {/* Metrics Cards */}
                     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                         <div className="overflow-hidden bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-                            <span className="text-sm font-medium text-gray-400 uppercase tracking-wider">Total Revenue</span>
+                            <span className="text-sm font-medium text-gray-400 uppercase tracking-wider">Revenue ({current_period})</span>
                             <div className="mt-2 text-3xl font-black text-gray-900">
                                 Rp {total_revenue.toLocaleString('id-ID')}
                             </div>
                         </div>
                         <div className="overflow-hidden bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-                            <span className="text-sm font-medium text-gray-400 uppercase tracking-wider">Transactions Processed</span>
+                            <span className="text-sm font-medium text-gray-400 uppercase tracking-wider">Transactions ({current_period})</span>
                             <div className="mt-2 text-3xl font-black text-gray-900">
                                 {total_orders} Orders
                             </div>
                         </div>
                     </div>
 
-                    {/* Bottom Row: Data Split lists */}
+                    {/* Breakdown lists */}
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 
-                        {/* Left Card: Top Selling Menu Items */}
+                        {/* Top Products */}
                         <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm flex flex-col">
                             <h3 className="text-lg font-bold text-gray-800 border-b pb-3 mb-4">🔥 Top Selling Items</h3>
                             {top_products.length === 0 ? (
-                                <p className="text-gray-400 text-sm my-auto text-center py-6">No sales recorded yet.</p>
+                                <p className="text-gray-400 text-sm my-auto text-center py-6">No sales recorded for this period.</p>
                             ) : (
                                 <div className="divide-y divide-gray-100">
                                     {top_products.map((product, index) => (
@@ -46,7 +71,7 @@ export default function Dashboard({ stats }) {
                                                 {index + 1}. {product.name}
                                             </span>
                                             <span className="bg-amber-50 text-amber-800 font-bold text-xs px-2.5 py-1 rounded-full">
-                                                {product.total_sold} units sold
+                                                {product.total_sold} units
                                             </span>
                                         </div>
                                     ))}
@@ -54,7 +79,7 @@ export default function Dashboard({ stats }) {
                             )}
                         </div>
 
-                        {/* Right Card: Low Stock Raw Inventory Warning Alerts */}
+                        {/* Inventory Warning Alerts */}
                         <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm flex flex-col">
                             <h3 className="text-lg font-bold text-gray-800 border-b pb-3 mb-4">⚠️ Inventory Alerts</h3>
                             {low_stock.length === 0 ? (

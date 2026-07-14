@@ -6,29 +6,41 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Ingredient;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class AnalyticsService
 {
     /**
-     * Get summary metrics and low stock alerts.
+     * Get summary metrics filtered by a specific time period.
      */
-    public function getDashboardStats(): array
+    public function getDashboardStats(string $period = 'month'): array
     {
-        // 1. Calculate Total Revenue & Total Orders
+        // Determine the start date based on chosen period
+        $startDate = match ($period) {
+            'today' => Carbon::today(),
+            'week' => Carbon::now()->startOfWeek(),
+            'year' => Carbon::now()->startOfYear(),
+            default => Carbon::now()->startOfMonth(), // Default to current month
+        };
+
+        // 1. Calculate Revenue & Orders inside the time range
         $salesStats = Order::where('payment_status', 'paid')
+            ->where('created_at', '>=', $startDate)
             ->selectRaw('COALESCE(SUM(total_amount), 0) as total_revenue, COUNT(id) as total_orders')
             ->first();
 
-        // 2. Find Top Selling Products (grouped by product name)
+        // 2. Find Top Selling Products inside the time range
         $topProducts = OrderItem::select('products.name', DB::raw('SUM(order_items.quantity) as total_sold'))
             ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('orders.payment_status', 'paid')
+            ->where('orders.created_at', '>=', $startDate)
             ->groupBy('products.name')
             ->orderByDesc('total_sold')
             ->limit(5)
             ->get();
 
-        // 3. Find Ingredients Running Low (e.g., stock is less than 1000g/ml or 10 units)
-        // Adjust threshold based on your shop's operational needs
+        // 3. Low Stock Alerts (Independent of time range)
         $lowStockIngredients = Ingredient::where('stock', '<', 1000)
             ->orderBy('stock', 'asc')
             ->get();
@@ -38,6 +50,7 @@ class AnalyticsService
             'total_orders'  => (int) $salesStats->total_orders,
             'top_products'  => $topProducts,
             'low_stock'     => $lowStockIngredients,
+            'current_period' => $period
         ];
     }
 }
