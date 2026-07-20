@@ -7,6 +7,7 @@ use Inertia\Inertia;
 
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\IngredientController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -31,6 +32,14 @@ Route::middleware(['auth', 'verified'])->group(function (){
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
     Route::post('/pos/checkout', [PosController::class, 'store'])->name('pos.checkout');
+
+    // Ingredients Management Routes
+    Route::get('/ingredients', [IngredientController::class, 'index'])->name('ingredients.index');
+    Route::post('/ingredients', [IngredientController::class, 'store'])->name('ingredients.store');
+    Route::put('/ingredients/{ingredient}', [IngredientController::class, 'update'])->name('ingredients.update');
+    Route::post('/ingredients/{ingredient}/restock', [IngredientController::class, 'restock'])->name('ingredients.restock');
+    Route::delete('/ingredients/{ingredient}', [IngredientController::class, 'destroy'])->name('ingredients.destroy');
+
 });
 
 require __DIR__.'/auth.php';
