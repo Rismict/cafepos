@@ -38,6 +38,7 @@ Route::middleware(['auth', 'verified'])->group(function (){
     Route::post('/ingredients', [IngredientController::class, 'store'])->name('ingredients.store');
     Route::put('/ingredients/{ingredient}', [IngredientController::class, 'update'])->name('ingredients.update');
     Route::post('/ingredients/{ingredient}/restock', [IngredientController::class, 'restock'])->name('ingredients.restock');
+    Route::post('/ingredients/{ingredient}/waste', [IngredientController::class, 'waste'])->name('ingredients.waste'); // <-- NEW
     Route::delete('/ingredients/{ingredient}', [IngredientController::class, 'destroy'])->name('ingredients.destroy');
 
 });

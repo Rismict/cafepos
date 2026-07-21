@@ -78,4 +78,21 @@ class IngredientController extends Controller
             return redirect()->back()->withErrors(['error' => $e->getMessage()]);
         }
     }
+
+     /**
+     * Log spillage, expiration, or wastage.
+     */
+    public function waste(Request $request, Ingredient $ingredient): RedirectResponse{
+        $validated = $request->validate([
+            'quantity' => 'required|numeric|min:0.01',
+            'reason' => 'required|string|max:255',
+        ]);
+
+        try {
+            $this->ingredientService->logWastage($ingredient, $validated['quantity'], $validated['reason']);
+            return redirect()->back()->with('message', "Wastage logged for {$ingredient->name}.");
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
 }

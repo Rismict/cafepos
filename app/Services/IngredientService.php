@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Ingredient;
+use App\Models\StockMovement;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Collection;
 
 class IngredientService
@@ -12,10 +14,13 @@ class IngredientService
      */
     public function getIngredients(string $search = ''): Collection
     {
-        $query = Ingredient::orderBy('name', 'asc');
+        // Eager load the last 15 movements for each ingredient, including the user who did it
+        $query = Ingredient::with(['movements' => function($query){
+            $query->latest()->take(15)->with('user');
+        }])->orderBy('name', 'asc');
 
         if (!empty($search)) {
-            $query->where('name', 'ilike', '%' . $search . '%'); // 'ilike' is PostgreSQL's case-insensitive search
+            $query->where('name', 'ilike', '%' . $search . '%');
         }
 
         return $query->get();
@@ -48,6 +53,21 @@ class IngredientService
     }
 
     /**
+     * NEW: Handle Spillage, Expiration, or Wastage
+     */
+    public function logWastage(Ingredient $ingredient, float $quantity, string $reason): Ingredient
+    {
+        if ($ingredient->stock < $quantity) {
+            throw new \Exception("Cannot waste more stock than currently available.");
+        }
+
+        $ingredient->decrement('stock', $quantity);
+        $this->logMovement($ingredient, 'waste', -$quantity, $reason);
+        
+        return $ingredient;
+    }
+
+    /**
      * Safely delete an ingredient if it's not tied to any active recipes.
      */
     public function deleteIngredient(Ingredient $ingredient): bool
@@ -61,5 +81,20 @@ class IngredientService
         }
 
         return $ingredient->delete();
+    }
+
+    /**
+     * Internal helper to record the audit trail
+     */
+    private function logMovement(Ingredient $ingredient, string $type, float $quantity, string $notes): void
+    {
+        StockMovement::create([
+            'ingredient_id' => $ingredient->id,
+            'user_id' => Auth::id(), // Logs the exact person logged in!
+            'type' => $type,
+            'quantity_changed' => $quantity,
+            'balance_after' => $ingredient->fresh()->stock,
+            'notes' => $notes,
+        ]);
     }
 }
